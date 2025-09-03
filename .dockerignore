@@ -1,0 +1,39 @@
+# Binaries
+restaurant-system
+restaurant-system.exe
+*.exe
+
+# Documentation
+README.md
+TASK.md
+restaurant-architecture.md
+QUESTIONS.md
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+Dockerfile
+docker-compose.yaml
+.dockerignore
+
+# Logs
+*.log
+
+# Test files
+*_test.go
+
+# Temporary files
+*.tmp

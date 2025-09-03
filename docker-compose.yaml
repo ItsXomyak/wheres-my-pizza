@@ -1,0 +1,165 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:alpine
+    container_name: restaurant-postgres
+    environment:
+      POSTGRES_DB: restaurant_db
+      POSTGRES_USER: restaurant_user
+      POSTGRES_PASSWORD: restaurant_pass
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - restaurant-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U restaurant_user -d restaurant_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # RabbitMQ Message Broker
+  rabbitmq:
+    image: rabbitmq:management-alpine
+    container_name: restaurant-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    ports:
+      - "5672:5672"    # AMQP port
+      - "15672:15672"  # Management UI port
+    networks:
+      - restaurant-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Order Service
+  order-service:
+    build: .
+    container_name: restaurant-order-service
+    command: ["./restaurant-system", "--mode=order-service", "--port=3000", "--max-concurrent=50"]
+    ports:
+      - "3000:3000"
+    networks:
+      - restaurant-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=restaurant_user
+      - DB_PASSWORD=restaurant_pass
+      - DB_NAME=restaurant_db
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=guest
+      - RABBITMQ_PASSWORD=guest
+    restart: unless-stopped
+
+  # Kitchen Worker 1 (General)
+  kitchen-worker-1:
+    build: .
+    container_name: restaurant-kitchen-worker-1
+    command: ["./restaurant-system", "--mode=kitchen-worker", "--worker-name=chef_mario", "--prefetch=1", "--heartbeat-interval=30"]
+    networks:
+      - restaurant-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=restaurant_user
+      - DB_PASSWORD=restaurant_pass
+      - DB_NAME=restaurant_db
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=guest
+      - RABBITMQ_PASSWORD=guest
+    restart: unless-stopped
+
+  # Kitchen Worker 2 (Delivery Specialist)
+  kitchen-worker-2:
+    build: .
+    container_name: restaurant-kitchen-worker-2
+    command: ["./restaurant-system", "--mode=kitchen-worker", "--worker-name=chef_luigi", "--order-types=delivery", "--prefetch=1", "--heartbeat-interval=30"]
+    networks:
+      - restaurant-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=restaurant_user
+      - DB_PASSWORD=restaurant_pass
+      - DB_NAME=restaurant_db
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=guest
+      - RABBITMQ_PASSWORD=guest
+    restart: unless-stopped
+
+  # Tracking Service
+  tracking-service:
+    build: .
+    container_name: restaurant-tracking-service
+    command: ["./restaurant-system", "--mode=tracking-service", "--port=3002"]
+    ports:
+      - "3002:3002"
+    networks:
+      - restaurant-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=restaurant_user
+      - DB_PASSWORD=restaurant_pass
+      - DB_NAME=restaurant_db
+    restart: unless-stopped
+
+  # Notification Subscriber
+  notification-subscriber:
+    build: .
+    container_name: restaurant-notification-subscriber
+    command: ["./restaurant-system", "--mode=notification-subscriber"]
+    networks:
+      - restaurant-network
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=guest
+      - RABBITMQ_PASSWORD=guest
+    restart: unless-stopped
+
+# Networks
+networks:
+  restaurant-network:
+    driver: bridge
+
+# Volumes
+volumes:
+  postgres_data:
+    driver: local
+  rabbitmq_data:
+    driver: local
