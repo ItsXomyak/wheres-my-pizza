@@ -23,11 +23,16 @@ func NewOrderService(db *sql.DB) *OrderService {
 }
 
 func (s *OrderService) CreateOrder(ctx context.Context, req *OrderRequest) (*OrderResponse, error) {
+	
+	
+	
+	// Create response
 	var resp OrderResponse
 	resp.OrderNumber = s.generateOrderNumber()
 	resp.Status = "received"
 	total := s.countTotalPrice(req)
 	resp.TotalAmount = total
+	
 	return &resp, nil
 }
 
