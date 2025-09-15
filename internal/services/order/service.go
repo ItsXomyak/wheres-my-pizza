@@ -29,7 +29,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, req *OrderRequest) (*Ord
 	if err := ValidateOrderRequest(req); err != nil {
 		return nil, err
 	}
-	
+
 	// Create response
 	var resp OrderResponse
 	resp.OrderNumber = s.generateOrderNumber()
@@ -46,14 +46,13 @@ func (s *OrderService) CreateOrder(ctx context.Context, req *OrderRequest) (*Ord
 		return nil, err
 	}
 
-
 	return &resp, nil
 }
 
 func (s *OrderService) generateOrderNumber() string {
 	// If service restarts, we need to get today's order count from DB
 	if orderCounter == 0 {
-		s.db.QueryRow("SELECT COUNT(*) FROM orders WHERE DATE(created_at) = CURRENT_DATE").Scan(&orderCounter)
+		orderCounter, _ = s.db.GetOrderNumber(context.Background())
 	}
 	if lastOrderDate == "" {
 		lastOrderDate = time.Now().UTC().Format("20060102")
