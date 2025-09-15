@@ -39,10 +39,19 @@ func (s *OrderService) CreateOrder(ctx context.Context, req *OrderRequest) (*Ord
 
 	// Insert into DB
 	priority := s.setOrderPriority(&resp)
-	if err := s.db.InsertOrder(ctx, req, &resp, priority); err != nil {
+	orderID, err := s.db.InsertOrder(ctx, req, &resp, priority);
+	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("no rows affected")
 		}
+		return nil, err
+	}
+	err = s.db.InsertOrderItems(ctx, req, &resp, orderID);
+	if err != nil {
+		return nil, err
+	}
+	err = s.db.AddInitialStatus(ctx, orderID);
+	if err != nil {
 		return nil, err
 	}
 
