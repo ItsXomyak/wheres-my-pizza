@@ -9,9 +9,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-var DBPool *pgxpool.Pool
-
-func InitDB(ctx context.Context) {
+func NewDBPool(ctx context.Context) *pgxpool.Pool {
 	poolConfig, err := pgxpool.ParseConfig(os.Getenv("DATABASE_URL"))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Unable to parse DATABASE_URL: %v\n", err) // rewrite with logger
@@ -32,9 +30,10 @@ func InitDB(ctx context.Context) {
 	}
 
 	slog.Info("Connected to database") // rewrite with logger
+	return DBPool
 }
 
-func CloseDB() {
+func CloseDB(DBPool *pgxpool.Pool) {
 	if DBPool != nil {
 		DBPool.Close()
 	}

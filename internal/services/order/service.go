@@ -1,5 +1,7 @@
 package order
 
+// add correct structure
+
 import (
 	"context"
 	"database/sql"
@@ -13,18 +15,20 @@ var (
 )
 
 type OrderService struct {
-	db *sql.DB
+	db *Repository
 }
 
-func NewOrderService(db *sql.DB) *OrderService {
+func NewOrderService(db *Repository) *OrderService {
 	return &OrderService{
 		db: db,
 	}
 }
 
 func (s *OrderService) CreateOrder(ctx context.Context, req *OrderRequest) (*OrderResponse, error) {
-	
-	
+	// Validate request
+	if err := ValidateOrderRequest(req); err != nil {
+		return nil, err
+	}
 	
 	// Create response
 	var resp OrderResponse
@@ -32,7 +36,17 @@ func (s *OrderService) CreateOrder(ctx context.Context, req *OrderRequest) (*Ord
 	resp.Status = "received"
 	total := s.countTotalPrice(req)
 	resp.TotalAmount = total
-	
+
+	// Insert into DB
+	priority := s.setOrderPriority(&resp)
+	if err := s.db.InsertOrder(ctx, req, &resp, priority); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("no rows affected")
+		}
+		return nil, err
+	}
+
+
 	return &resp, nil
 }
 
