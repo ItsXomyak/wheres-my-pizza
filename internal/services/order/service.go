@@ -4,7 +4,6 @@ package order
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"time"
 )
@@ -27,7 +26,7 @@ func NewOrderService(db *Repository) *OrderService {
 func (s *OrderService) CreateOrder(ctx context.Context, req *OrderRequest) (*OrderResponse, error) {
 	// Validate request
 	if err := ValidateOrderRequest(req); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("validate order request: %w", err)
 	}
 
 	// Create response
@@ -39,20 +38,9 @@ func (s *OrderService) CreateOrder(ctx context.Context, req *OrderRequest) (*Ord
 
 	// Insert into DB
 	priority := s.setOrderPriority(&resp)
-	orderID, err := s.db.InsertOrder(ctx, req, &resp, priority);
+	err := s.db.AddOrderInfoTransaction(ctx, req, &resp, priority)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, fmt.Errorf("no rows affected")
-		}
-		return nil, err
-	}
-	err = s.db.InsertOrderItems(ctx, req, &resp, orderID);
-	if err != nil {
-		return nil, err
-	}
-	err = s.db.AddInitialStatus(ctx, orderID);
-	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("add order to db: %w", err)
 	}
 
 	return &resp, nil

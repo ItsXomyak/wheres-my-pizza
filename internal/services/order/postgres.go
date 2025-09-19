@@ -2,6 +2,7 @@ package order
 
 import (
 	"context"
+
 	"where-is-my-pizza/adapter/db"
 
 	"github.com/jackc/pgx/v5"
@@ -19,6 +20,31 @@ func (r *Repository) InitPostgres(ctx context.Context) Repository {
 
 func (r *Repository) ClosePostgres() {
 	db.CloseDB(r.DBPool)
+}
+
+func (r *Repository) AddOrderInfoTransaction(ctx context.Context, orderRequest *OrderRequest, orderResponse *OrderResponse, priority int) error {
+	tx, err := r.DBPool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	orderID, err := r.InsertOrder(ctx, orderRequest, orderResponse, priority)
+	if err != nil {
+		return err
+	}
+	if err := r.InsertOrderItems(ctx, orderRequest, orderResponse, orderID); err != nil {
+		return err
+	}
+	if err := r.AddInitialStatus(ctx, orderID); err != nil {
+		return err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (r *Repository) InsertOrder(ctx context.Context, orderRequest *OrderRequest, orderResponse *OrderResponse, priority int) (int, error) {
@@ -47,7 +73,7 @@ func (r *Repository) InsertOrderItems(ctx context.Context, orderRequest *OrderRe
 
 func (r *Repository) AddInitialStatus(ctx context.Context, orderID int) error {
 	_, err := r.DBPool.Exec(ctx, `INSERT INTO order_status_log (order_id, status, changed_by, notes) VALUES ($1, $2, $3, $4)`,
-	orderID, "received", "order service", "initial status")
+		orderID, "received", "order service", "initial status")
 	return err
 }
 
