@@ -1,21 +1,24 @@
-package order
+package validation
 
-import "testing"
+import (
+	"testing"
+	"where-is-my-pizza/internal/services/order/internal/domain"
+)
 
 func TestValidateOrderRequest(t *testing.T) {
 	tests := []struct {
 		name    string
-		req     *OrderRequest
+		req     *domain.OrderRequest
 		wantErr bool
 	}{
 		{
 			name: "valid request",
-			req: &OrderRequest{
+			req: &domain.OrderRequest{
 				CustomerName: "John Doe",
 				OrderType:    "delivery",
 				DeliveryAddr: "123 Main St",
 				TableNumber:  0,
-				Items: []OrderItem{
+				Items: []domain.OrderItem{
 					{Name: "Pizza", Quantity: 1, Price: 9.99},
 				},
 			},
@@ -23,12 +26,12 @@ func TestValidateOrderRequest(t *testing.T) {
 		},
 		{
 			name: "missing customer name",
-			req: &OrderRequest{
+			req: &domain.OrderRequest{
 				CustomerName: "",
 				OrderType:    "delivery",
 				DeliveryAddr: "123 Main St",
 				TableNumber:  0,
-				Items: []OrderItem{
+				Items: []domain.OrderItem{
 					{Name: "Pizza", Quantity: 1, Price: 9.99},
 				},
 			},
@@ -36,12 +39,12 @@ func TestValidateOrderRequest(t *testing.T) {
 		},
 		{
 			name: "invalid order type",
-			req: &OrderRequest{
+			req: &domain.OrderRequest{
 				CustomerName: "John Doe",
 				OrderType:    "invalid",
 				DeliveryAddr: "123 Main St",
 				TableNumber:  0,
-				Items: []OrderItem{
+				Items: []domain.OrderItem{
 					{Name: "Pizza", Quantity: 1, Price: 9.99},
 				},
 			},
@@ -49,12 +52,12 @@ func TestValidateOrderRequest(t *testing.T) {
 		},
 		{
 			name: "missing delivery address for delivery order",
-			req: &OrderRequest{
+			req: &domain.OrderRequest{
 				CustomerName: "John Doe",
 				OrderType:    "delivery",
 				DeliveryAddr: "",
 				TableNumber:  0,
-				Items: []OrderItem{
+				Items: []domain.OrderItem{
 					{Name: "Pizza", Quantity: 1, Price: 9.99},
 				},
 			},

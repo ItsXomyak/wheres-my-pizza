@@ -1,6 +1,9 @@
-package order
+package validation
 
-import "fmt"
+import (
+	"fmt"
+	"where-is-my-pizza/internal/services/order/internal/domain"
+)
 
 type ValidationError struct {
 	Field   string
@@ -11,7 +14,7 @@ func (e ValidationError) Error() string {
 	return fmt.Sprintf("%s: %s", e.Field, e.Message)
 }
 
-func ValidateOrderRequest(req *OrderRequest) error {
+func ValidateOrderRequest(req *domain.OrderRequest) error {
 	if err := validateCustomerName(req.CustomerName); err != nil {
 		return err
 	}
@@ -70,7 +73,7 @@ func validateOrderType(orderType string) error {
 	return nil
 }
 
-func validateOrderTypeConditions(req *OrderRequest) error {
+func validateOrderTypeConditions(req *domain.OrderRequest) error {
 	if req.OrderType == "delivery" && req.DeliveryAddr == "" {
 		return ValidationError{
 			Field:   "delivery_address",
@@ -88,7 +91,7 @@ func validateOrderTypeConditions(req *OrderRequest) error {
 	return nil
 }
 
-func validateItems(items []OrderItem) error {
+func validateItems(items []domain.OrderItem) error {
 	if len(items) == 0 {
 		return ValidationError{
 			Field:   "items",
@@ -111,7 +114,7 @@ func validateItems(items []OrderItem) error {
 	return nil
 }
 
-func validateItem(item OrderItem, index int) error {
+func validateItem(item domain.OrderItem, index int) error {
 	if item.Name == "" {
 		return ValidationError{
 			Field:   fmt.Sprintf("items[%d].name", index),

@@ -1,9 +1,10 @@
-package order
+package db
 
 import (
 	"context"
 
 	"where-is-my-pizza/adapter/db"
+	"where-is-my-pizza/internal/services/order/internal/domain"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -22,7 +23,7 @@ func (r *Repository) ClosePostgres() {
 	db.CloseDB(r.DBPool)
 }
 
-func (r *Repository) AddOrderInfoTransaction(ctx context.Context, orderRequest *OrderRequest, orderResponse *OrderResponse, priority int) error {
+func (r *Repository) AddOrderInfoTransaction(ctx context.Context, orderRequest *domain.OrderRequest, orderResponse *domain.OrderResponse, priority int) error {
 	tx, err := r.DBPool.Begin(ctx)
 	if err != nil {
 		return err
@@ -47,7 +48,7 @@ func (r *Repository) AddOrderInfoTransaction(ctx context.Context, orderRequest *
 	return nil
 }
 
-func (r *Repository) InsertOrder(ctx context.Context, orderRequest *OrderRequest, orderResponse *OrderResponse, priority int) (int, error) {
+func (r *Repository) InsertOrder(ctx context.Context, orderRequest *domain.OrderRequest, orderResponse *domain.OrderResponse, priority int) (int, error) {
 	var id int
 	err := r.DBPool.QueryRow(ctx,
 		`INSERT INTO orders (number, customer_name, type, table_number, delivery_address, total_amount, 
@@ -60,7 +61,7 @@ func (r *Repository) InsertOrder(ctx context.Context, orderRequest *OrderRequest
 	return id, nil
 }
 
-func (r *Repository) InsertOrderItems(ctx context.Context, orderRequest *OrderRequest, orderResponse *OrderResponse, orderID int) error {
+func (r *Repository) InsertOrderItems(ctx context.Context, orderRequest *domain.OrderRequest, orderResponse *domain.OrderResponse, orderID int) error {
 	for _, item := range orderRequest.Items {
 		_, err := r.DBPool.Exec(ctx, `INSERT INTO order_items (order_id, name, quantity, price)
 			VALUES ($1, $2, $3, $4)`, orderID, item.Name, item.Quantity, item.Price)

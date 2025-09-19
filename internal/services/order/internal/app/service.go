@@ -1,4 +1,4 @@
-package order
+package app
 
 // add correct structure
 
@@ -6,6 +6,10 @@ import (
 	"context"
 	"fmt"
 	"time"
+	
+	"where-is-my-pizza/internal/services/order/adapter/db"
+	"where-is-my-pizza/internal/services/order/internal/domain"
+	"where-is-my-pizza/internal/services/order/internal/validation"
 )
 
 var (
@@ -14,23 +18,23 @@ var (
 )
 
 type OrderService struct {
-	db *Repository
+	db *db.Repository
 }
 
-func NewOrderService(db *Repository) *OrderService {
+func NewOrderService(db *db.Repository) *OrderService {
 	return &OrderService{
 		db: db,
 	}
 }
 
-func (s *OrderService) CreateOrder(ctx context.Context, req *OrderRequest) (*OrderResponse, error) {
+func (s *OrderService) CreateOrder(ctx context.Context, req *domain.OrderRequest) (*domain.OrderResponse, error) {
 	// Validate request
-	if err := ValidateOrderRequest(req); err != nil {
+	if err := validation.ValidateOrderRequest(req); err != nil {
 		return nil, fmt.Errorf("validate order request: %w", err)
 	}
 
 	// Create response
-	var resp OrderResponse
+	var resp domain.OrderResponse
 	resp.OrderNumber = s.generateOrderNumber()
 	resp.Status = "received"
 	total := s.countTotalPrice(req)
@@ -66,7 +70,7 @@ func (s *OrderService) generateOrderNumber() string {
 	return orderNumber
 }
 
-func (s *OrderService) countTotalPrice(req *OrderRequest) float64 {
+func (s *OrderService) countTotalPrice(req *domain.OrderRequest) float64 {
 	var total float64
 	for _, item := range req.Items {
 		total += item.Price * float64(item.Quantity)
@@ -74,7 +78,7 @@ func (s *OrderService) countTotalPrice(req *OrderRequest) float64 {
 	return total
 }
 
-func (s *OrderService) setOrderPriority(resp *OrderResponse) int {
+func (s *OrderService) setOrderPriority(resp *domain.OrderResponse) int {
 	priority := 0
 	if resp.TotalAmount > 100 {
 		priority = 10

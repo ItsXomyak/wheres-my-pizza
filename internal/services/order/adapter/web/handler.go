@@ -1,17 +1,21 @@
-package order
+package web
 
 import (
 	"context"
 	"encoding/json"
 	"log/slog"
 	"net/http"
+
+	"where-is-my-pizza/internal/services/order/internal/app"
+	"where-is-my-pizza/internal/services/order/internal/domain"
+	"where-is-my-pizza/internal/services/order/internal/validation"
 )
 
 type OrderHandler struct {
-	service *OrderService
+	service *app.OrderService
 }
 
-func NewOrderHandler(service *OrderService) *OrderHandler {
+func NewOrderHandler(service *app.OrderService) *OrderHandler {
 	return &OrderHandler{
 		service: service,
 	}
@@ -41,14 +45,14 @@ func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req OrderRequest
+	var req domain.OrderRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		slog.Error("Failed to decode request body", "error", err) // replace with your logger
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	reqErr := ValidateOrderRequest(&req)
+	reqErr := validation.ValidateOrderRequest(&req)
 	if reqErr != nil {
 		slog.Error("Validation error", "error", reqErr) // replace with your logger
 		http.Error(w, reqErr.Error(), http.StatusBadRequest)
