@@ -6,9 +6,9 @@ import (
 	"log/slog"
 	"net/http"
 
-	"where-is-my-pizza/internal/services/order/internal/app"
-	"where-is-my-pizza/internal/services/order/internal/domain"
-	"where-is-my-pizza/internal/services/order/internal/validation"
+	"wheres-my-pizza/internal/services/order/internal/app"
+	"wheres-my-pizza/internal/services/order/internal/domain"
+	"wheres-my-pizza/internal/services/order/internal/validation"
 )
 
 type OrderHandler struct {

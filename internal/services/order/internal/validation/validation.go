@@ -2,7 +2,7 @@ package validation
 
 import (
 	"fmt"
-	"where-is-my-pizza/internal/services/order/internal/domain"
+	"wheres-my-pizza/internal/services/order/internal/domain"
 )
 
 type ValidationError struct {

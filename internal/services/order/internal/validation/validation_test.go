@@ -2,7 +2,7 @@ package validation
 
 import (
 	"testing"
-	"where-is-my-pizza/internal/services/order/internal/domain"
+	"wheres-my-pizza/internal/services/order/internal/domain"
 )
 
 func TestValidateOrderRequest(t *testing.T) {

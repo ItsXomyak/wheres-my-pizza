@@ -3,8 +3,8 @@ package db
 import (
 	"context"
 
-	"where-is-my-pizza/adapter/db"
-	"where-is-my-pizza/internal/services/order/internal/domain"
+	"wheres-my-pizza/adapter/db"
+	"wheres-my-pizza/internal/services/order/internal/domain"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"

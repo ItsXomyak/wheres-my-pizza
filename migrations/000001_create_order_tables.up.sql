@@ -1,6 +1,6 @@
--- The primary table for storing all order details. 
--- Possible statuses include: received, cooking, ready, completed, cancelled.
-create table "orders" (
+SET TIME ZONE 'Asia/Almaty';
+
+CREATE TABLE IF NOT EXISTS orders (
     "id"                serial        primary key,
     "created_at"        timestamptz   not null    default now(),
     "updated_at"        timestamptz   not null    default now(),
@@ -16,8 +16,7 @@ create table "orders" (
     "completed_at"      timestamptz
 );
 
--- Stores the individual items associated with each order.
-create table order_items (
+CREATE TABLE IF NOT EXISTS order_items (
     "id"          serial        primary key,
     "created_at"  timestamptz   not null    default now(),
     "order_id"    integer       references orders(id),
@@ -26,9 +25,7 @@ create table order_items (
     "price"       decimal(8,2)  not null
 );
 
--- Creates an audit trail for an order's lifecycle, starting with the received status.
--- Possible statuses include: received, cooking, ready, completed, cancelled.
-create table order_status_log (
+CREATE TABLE IF NOT EXISTS order_status_log (
     "id"          serial        primary key,
     "created_at"  timestamptz   not null    default now(),
     "order_id"    integer       references orders(id),

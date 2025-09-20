@@ -6,10 +6,10 @@ import (
 	"context"
 	"fmt"
 	"time"
-	
-	"where-is-my-pizza/internal/services/order/adapter/db"
-	"where-is-my-pizza/internal/services/order/internal/domain"
-	"where-is-my-pizza/internal/services/order/internal/validation"
+
+	"wheres-my-pizza/internal/services/order/adapter/db"
+	"wheres-my-pizza/internal/services/order/internal/domain"
+	"wheres-my-pizza/internal/services/order/internal/validation"
 )
 
 var (

@@ -1,142 +1,165 @@
 package config
 
 import (
-	"encoding/json"
+	"errors"
+	"flag"
 	"fmt"
-	"os"
-	"strconv"
-	"strings"
+	"time"
+
+	"wheres-my-pizza/internal/domain/types"
+	"wheres-my-pizza/pkg/configparser"
+	"wheres-my-pizza/pkg/logger"
+	"wheres-my-pizza/pkg/postgres"
+	"wheres-my-pizza/pkg/rabbit"
 )
 
-// Config represents the application's configuration loaded from YAML.
-type Config struct {
-	Database DatabaseConfig `yaml:"database"`
-	RabbitMQ RabbitMQConfig `yaml:"rabbitmq"`
+const (
+	DefaultOrderServicePort    = 3000
+	DefaultTrackingServicePort = 3002
+)
+
+var (
+	// General
+	modeFlag = flag.String("mode", "", "application mode")
+	portFlag = flag.Int("port", -1, "The HTTP port for the API")
+	logLevel = flag.String("log-level", logger.LevelDebug, "Logger level. (DEBUG, INFO, WARN, ERROR)")
+
+	// Order service
+	maxConcurrent = flag.Int("max-concurrent", 50, "Maximum number of concurrent orders to process.")
+
+	// Kitchen service
+	workerName   = flag.String("worker-name", "", "unique name for the worker (e.g., chef_mario) (required)")
+	orderTypes   = flag.String("order-types", "", "comma-separated list of order types the worker can handle (e.g., dine_in,takeout)")
+	heartbeatInt = flag.Int("heartbeat-interval", 30, "interval (seconds) between heartbeats")
+	prefetch     = flag.Int("prefetch", 1, "RabbitMQ prefetch count")
+)
+
+var (
+	ErrModeNotProvided = errors.New("mode flag not provided")
+	ErrInvalidModeFlag = errors.New("invalid mode flag")
+)
+
+type (
+	// Config
+	Config struct {
+		Mode       types.ServiceMode
+		Services   Services
+		HTTPServer HTTPServer
+		Postgres   postgres.Config
+		RabbitMQ   RabbitMQ
+
+		LogLevel string
+	}
+
+	Services struct {
+		Order    OrderService
+		Kitchen  KitchenService
+		Tracking TrackingService
+	}
+
+	// HTTP service
+	HTTPServer struct {
+		Port int
+	}
+
+	OrderService struct {
+		MaxConcurrent int
+		SemWait       time.Duration `env:"ORDER_SEMWAIT" default:"1s"`
+	}
+
+	TrackingService struct {
+		HeartbeatInterval int
+	}
+
+	KitchenService struct {
+		WorkerName        string
+		OrderTypes        string
+		Prefetch          int
+		HeartbeatInterval int
+		ReconnectAttempt  int           `env:"KITCHEN_RECONNECT_ATTEMPT" default:"5"`
+		ReconnectDelay    time.Duration `env:"KITCHEN_RECONNECT_DELAY" default:"1s"`
+	}
+
+	RabbitMQ struct {
+		Conn                  rabbit.Config
+		OrderExchange         string        `env:"RABBITMQ_ORDER_EXCHANGE" default:"orders_topic"`
+		NotificationsExchange string        `env:"RABBITMQ_NOTIFICATIONS_EXCHANGE" default:"notifications_fanout"`
+		ReconnectAttempt      int           `env:"RABBITMQ_RECONNECT_ATTEMPT" default:"5"`
+		ReconnectDelay        time.Duration `env:"RABBITMQ_RECONNECT_DELAY" default:"1s"`
+	}
+)
+
+func New(filepath string) (*Config, error) {
+	cfg := &Config{}
+
+	if err := configparser.LoadAndParseYaml(filepath, cfg); err != nil {
+		return nil, err
+	}
+
+	if err := parseFlags(cfg); err != nil {
+		return nil, err
+	}
+
+	return cfg, nil
 }
 
-type DatabaseConfig struct {
-	Host     string `yaml:"host"`
-	Port     int    `yaml:"port"`
-	User     string `yaml:"user"`
-	Password string `yaml:"password"`
-	Database string `yaml:"database"`
+func parseFlags(cfg *Config) error {
+	if modeFlag == nil {
+		return ErrModeNotProvided
+	}
+
+	cfg.LogLevel = *logLevel
+	if logLevel == nil || *logLevel == "" {
+		cfg.LogLevel = logger.LevelDebug
+	}
+
+	if err := validateLogLevel(cfg.LogLevel); err != nil {
+		return err
+	}
+
+	cfg.Mode = types.ServiceMode(*modeFlag)
+
+	switch cfg.Mode {
+	case types.ModeOrder:
+		if portFlag == nil || *portFlag < 1024 || *portFlag > 65535 {
+			cfg.HTTPServer.Port = DefaultOrderServicePort
+		} else {
+			cfg.HTTPServer.Port = *portFlag
+		}
+
+		if maxConcurrent != nil && !(*maxConcurrent >= 0 && *maxConcurrent <= 1000) {
+			return errors.New("--max-concurrent flag must be between 1 and 1000")
+		}
+		cfg.Services.Order.MaxConcurrent = *maxConcurrent
+	case types.ModeKitchenWorker:
+		if workerName == nil || *workerName == "" {
+			return errors.New("missing required flag: --worker-name")
+		}
+
+		cfg.Services.Kitchen.WorkerName = *workerName
+		cfg.Services.Kitchen.OrderTypes = *orderTypes
+		cfg.Services.Kitchen.HeartbeatInterval = *heartbeatInt
+		cfg.Services.Kitchen.Prefetch = *prefetch
+	case types.ModeTracking:
+		if portFlag != nil {
+			cfg.HTTPServer.Port = *portFlag
+		} else {
+			cfg.HTTPServer.Port = DefaultTrackingServicePort
+		}
+		cfg.Services.Tracking.HeartbeatInterval = *heartbeatInt
+	case types.ModeNotificationSubscriber:
+	default:
+		return ErrInvalidModeFlag
+	}
+
+	return nil
 }
 
-type RabbitMQConfig struct {
-	Host     string `yaml:"host"`
-	Port     int    `yaml:"port"`
-	User     string `yaml:"user"`
-	Password string `yaml:"password"`
-}
-
-// Load reads a YAML file from path and unmarshals it into Config.
-func Load(path string) (*Config, error) {
-	b, err := os.ReadFile(path)
-	if err != nil {
-		return nil, fmt.Errorf("read config: %w", err)
+func validateLogLevel(lvl string) error {
+	switch lvl {
+	case logger.LevelDebug, logger.LevelError, logger.LevelWarn, logger.LevelInfo:
+		return nil
+	default:
+		return fmt.Errorf("invalid log level: %s", lvl)
 	}
-	// Parse the (simple) YAML into a generic map without pulling an external yaml
-	// dependency. This parser supports basic mappings and integer/boolean/scalar
-	// values which is sufficient for this project's config.yaml.
-	m, err := parseSimpleYAMLToMap(string(b))
-	if err != nil {
-		return nil, fmt.Errorf("parse config: %w", err)
-	}
-
-	jb, err := json.Marshal(m)
-	if err != nil {
-		return nil, fmt.Errorf("marshal intermediate json: %w", err)
-	}
-
-	var c Config
-	if err := json.Unmarshal(jb, &c); err != nil {
-		return nil, fmt.Errorf("unmarshal config json: %w", err)
-	}
-
-	// Basic validation
-	if c.Database.Host == "" || c.Database.Port == 0 {
-		return nil, fmt.Errorf("invalid database configuration: %+v", c.Database)
-	}
-	if c.RabbitMQ.Host == "" || c.RabbitMQ.Port == 0 {
-		return nil, fmt.Errorf("invalid rabbitmq configuration: %+v", c.RabbitMQ)
-	}
-
-	return &c, nil
-}
-
-// parseSimpleYAMLToMap parses a very small subset of YAML sufficient for
-// the repository's config.yaml: top-level mappings, nested mappings (by
-// indentation), and scalar values (strings, integers, booleans). It does
-// not support sequences, anchors, or complex types.
-func parseSimpleYAMLToMap(s string) (map[string]interface{}, error) {
-	lines := strings.Split(s, "\n")
-	root := map[string]interface{}{}
-
-	type frame struct {
-		indent int
-		node   map[string]interface{}
-	}
-
-	// stack holds the nested maps with their indentation level. Start with root
-	// at indent -1 so top-level keys (indent 0) attach to it.
-	stack := []frame{{indent: -1, node: root}}
-
-	for _, raw := range lines {
-		// trim CR for Windows files and skip empty/comment lines
-		line := strings.TrimRight(raw, "\r")
-		if strings.TrimSpace(line) == "" {
-			continue
-		}
-		ts := strings.TrimSpace(line)
-		if strings.HasPrefix(ts, "#") {
-			continue
-		}
-
-		// count leading spaces (assume spaces used for indentation)
-		i := 0
-		for i < len(line) && line[i] == ' ' {
-			i++
-		}
-		indent := i
-
-		// split key: value
-		parts := strings.SplitN(strings.TrimSpace(line), ":", 2)
-		key := strings.TrimSpace(parts[0])
-		var valStr string
-		if len(parts) > 1 {
-			valStr = strings.TrimSpace(parts[1])
-		}
-
-		// find parent frame: the most recent frame with indent < current indent
-		for len(stack) > 0 && stack[len(stack)-1].indent >= indent {
-			stack = stack[:len(stack)-1]
-		}
-		parent := stack[len(stack)-1].node
-
-		if valStr == "" {
-			// a new nested mapping
-			nm := map[string]interface{}{}
-			parent[key] = nm
-			stack = append(stack, frame{indent: indent, node: nm})
-			continue
-		}
-
-		// parse scalar value: try int, bool, then string
-		if iv, err := strconv.Atoi(valStr); err == nil {
-			parent[key] = iv
-			continue
-		}
-		if valStr == "true" || valStr == "false" {
-			parent[key] = (valStr == "true")
-			continue
-		}
-		// strip optional quotes
-		if len(valStr) >= 2 && ((valStr[0] == '\'' && valStr[len(valStr)-1] == '\'') || (valStr[0] == '"' && valStr[len(valStr)-1] == '"')) {
-			parent[key] = valStr[1 : len(valStr)-1]
-			continue
-		}
-		parent[key] = valStr
-	}
-
-	return root, nil
 }
