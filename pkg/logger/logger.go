@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	. "wheres-my-pizza/internal/domain/entities"
+	"wheres-my-pizza/internal/domain/models"
 )
 
 const (
@@ -96,7 +96,7 @@ func (h *contextHandler) Enabled(ctx context.Context, lvl slog.Level) bool {
 }
 
 func (h *contextHandler) Handle(ctx context.Context, r slog.Record) error {
-	if reqID, ok := ctx.Value(GetRequestIDKey()).(string); ok {
+	if reqID, ok := ctx.Value(models.GetRequestIDKey()).(string); ok {
 		r.AddAttrs(slog.String("request_id", reqID))
 	}
 	return h.handler.Handle(ctx, r)
@@ -141,7 +141,7 @@ func (l *logger) GetSlogLogger() *slog.Logger {
 
 // Helper to set request_id in context
 func WithRequestID(ctx context.Context, requestID string) context.Context {
-	return context.WithValue(ctx, GetRequestIDKey(), requestID)
+	return context.WithValue(ctx, models.GetRequestIDKey(), requestID)
 }
 
 // getStack return stack info

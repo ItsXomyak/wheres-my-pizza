@@ -1,21 +1,6 @@
 # wheres-my-pizza
 
-## Learning Objectives
-
-- Message Queue Systems
-- RabbitMQ Integration
-- Concurrent Programming
-- Microservices Architecture
-
-## Abstract
-
-In this project, you will build a distributed restaurant order management system. Using Go, you will create several microservices that communicate asynchronously via a RabbitMQ message broker, with order data persisted in a PostgreSQL database. This system will simulate a real-world restaurant workflow, from an order being placed via an API, to it being cooked by a kitchen worker, and finally its status being tracked. This project teaches a fundamental lesson in modern software engineering: think about the architecture first. Before writing a single line of code, you must design how services will interact, how data will flow, and how the system can scale.
-
 ## Context
-
-> Good architecture makes the system easy to understand, easy to develop, easy to maintain, and easy to deploy. The ultimate goal is to minimize the lifetime cost of the system and to maximize programmer productivity.
->
-> — Robert C. Martin (Uncle Bob)
 
 Have you ever ordered a pizza through a delivery app and watched its status change from "Order Placed" to "In the Kitchen" and finally "Out for Delivery"? What seems like a simple status tracker is actually a complex dance between multiple independent systems. The web app where you place your order isn't directly connected to the tablet in the kitchen.
 
@@ -235,12 +220,12 @@ POST /orders
 
 ```json
 {
-  "customer_name": "John Doe",
-  "order_type": "takeout",
-  "items": [
-    { "name": "Margherita Pizza", "quantity": 1, "price": 15.99 },
-    { "name": "Caesar Salad", "quantity": 1, "price": 8.99 }
-  ]
+	"customer_name": "John Doe",
+	"order_type": "takeout",
+	"items": [
+		{ "name": "Margherita Pizza", "quantity": 1, "price": 15.99 },
+		{ "name": "Caesar Salad", "quantity": 1, "price": 8.99 }
+	]
 }
 ```
 
@@ -248,9 +233,9 @@ POST /orders
 
 ```json
 {
-  "order_number": "ORD_20241216_001",
-  "status": "received",
-  "total_amount": 24.98
+	"order_number": "ORD_20241216_001",
+	"status": "received",
+	"total_amount": 24.98
 }
 ```
 
@@ -304,14 +289,14 @@ POST /orders
 
    ```json
    {
-     "order_number": "ORD_20241216_001",
-     "customer_name": "John Doe",
-     "order_type": "delivery",
-     "table_number": null,
-     "delivery_address": "123 Main St, City",
-     "items": [{ "name": "Margherita Pizza", "quantity": 7, "price": 15.99 }],
-     "total_amount": 111.93,
-     "priority": 10
+   	"order_number": "ORD_20241216_001",
+   	"customer_name": "John Doe",
+   	"order_type": "delivery",
+   	"table_number": null,
+   	"delivery_address": "123 Main St, City",
+   	"items": [{ "name": "Margherita Pizza", "quantity": 7, "price": 15.99 }],
+   	"total_amount": 111.93,
+   	"priority": 10
    }
    ```
 
@@ -444,12 +429,12 @@ This service does not expose any API endpoints. It interacts with the system via
 
     ```json
     {
-      "order_number": "ORD_20241216_001",
-      "old_status": "received",
-      "new_status": "cooking",
-      "changed_by": "chef_mario",
-      "timestamp": "2024-12-16T10:32:00Z",
-      "estimated_completion": "2024-12-16T10:42:00Z"
+    	"order_number": "ORD_20241216_001",
+    	"old_status": "received",
+    	"new_status": "cooking",
+    	"changed_by": "chef_mario",
+    	"timestamp": "2024-12-16T10:32:00Z",
+    	"estimated_completion": "2024-12-16T10:42:00Z"
     }
     ```
 
@@ -552,11 +537,11 @@ GET /orders/{order_number}/status
 
 ```json
 {
-  "order_number": "ORD_20241216_001",
-  "current_status": "cooking",
-  "updated_at": "2024-12-16T10:32:00Z",
-  "estimated_completion": "2024-12-16T10:42:00Z",
-  "processed_by": "chef_mario"
+	"order_number": "ORD_20241216_001",
+	"current_status": "cooking",
+	"updated_at": "2024-12-16T10:32:00Z",
+	"estimated_completion": "2024-12-16T10:42:00Z",
+	"processed_by": "chef_mario"
 }
 ```
 
@@ -570,16 +555,16 @@ GET /orders/{order_number}/history
 
 ```json
 [
-  {
-    "status": "received",
-    "timestamp": "2024-12-16T10:30:00Z",
-    "changed_by": "order-service"
-  },
-  {
-    "status": "cooking",
-    "timestamp": "2024-12-16T10:32:00Z",
-    "changed_by": "chef_mario"
-  }
+	{
+		"status": "received",
+		"timestamp": "2024-12-16T10:30:00Z",
+		"changed_by": "order-service"
+	},
+	{
+		"status": "cooking",
+		"timestamp": "2024-12-16T10:32:00Z",
+		"changed_by": "chef_mario"
+	}
 ]
 ```
 
@@ -593,18 +578,18 @@ GET /workers/status
 
 ```json
 [
-  {
-    "worker_name": "chef_mario",
-    "status": "online",
-    "orders_processed": 5,
-    "last_seen": "2024-12-16T10:35:00Z"
-  },
-  {
-    "worker_name": "chef_luigi",
-    "status": "offline",
-    "orders_processed": 3,
-    "last_seen": "2024-12-16T10:30:01Z"
-  }
+	{
+		"worker_name": "chef_mario",
+		"status": "online",
+		"orders_processed": 5,
+		"last_seen": "2024-12-16T10:35:00Z"
+	},
+	{
+		"worker_name": "chef_luigi",
+		"status": "offline",
+		"orders_processed": 3,
+		"last_seen": "2024-12-16T10:30:01Z"
+	}
 ]
 ```
 
@@ -715,52 +700,15 @@ This service does not expose any API endpoints. It outputs information to the co
    _Expected Log Output:_
    ```json
    {
-     "timestamp": "2024-12-16T10:32:05.000Z",
-     "level": "INFO",
-     "service": "notification-subscriber",
-     "hostname": "notification-sub-1",
-     "request_id": "a1b2c3d4e5f6",
-     "action": "notification_received",
-     "message": "Received status update for order ORD_20241216_001",
-     "details": { "order_number": "ORD_20241216_001", "new_status": "cooking" }
+   	"timestamp": "2024-12-16T10:32:05.000Z",
+   	"level": "INFO",
+   	"service": "notification-subscriber",
+   	"hostname": "notification-sub-1",
+   	"request_id": "a1b2c3d4e5f6",
+   	"action": "notification_received",
+   	"message": "Received status update for order ORD_20241216_001",
+   	"details": { "order_number": "ORD_20241216_001", "new_status": "cooking" }
    }
    ```
    _Expected Console Output:_
    `Notification for order ORD_20241216_001: Status changed from 'received' to 'cooking' by chef_mario.`
-
----
-
-## Support
-
-If you get stuck, test your code with the example inputs from the project. You should get the same results. If not, re-read the description again. Perhaps you missed something, or your code is incorrect.
-
-Make sure both PostgreSQL and RabbitMQ servers are running and accessible. Check the connection strings and verify proper configuration of database schema and message queues.
-
-Test each component individually before integrating them together. Use the provided SQL scripts to verify database schema and the RabbitMQ management interface to monitor queue status.
-
-If you're still stuck, review the logging output for error details, check service dependencies, and ensure all required environment variables are set correctly.
-
-## Guidelines from Author
-
-Before diving into code, it's crucial to step back and think about your system architecture. This project illustrates a fundamental principle of good software design - your architectural choices often determine the clarity and efficiency of your code.
-
-Start with questions: How will components interact? Which message exchange patterns best fit the task? What delivery guarantees are needed? How will you handle failures and ensure data consistency? Only after you've carefully thought through these questions should you proceed to API design and code writing.
-
-This approach may seem like extra work initially, but it pays off. Well-chosen architecture can make your code simpler, more readable, and often more efficient. It's like choosing the right tools before starting work - with the right foundation, the rest of the work becomes much easier.
-
-Pay special attention to the data flow between services. Design your database schema first, then define your message formats, and finally implement the service logic. This order ensures consistency and reduces the need for major refactoring later.
-
-Remember that in programming, as in many other things, thoughtful preparation is the key to success. Spend time on proper architecture, and you'll find that the coding process becomes smoother and more enjoyable.
-
-Good system architecture is the foundation of clear, efficient code. It often simplifies programming more than clever algorithms can. Invest time in architectural design first. This approach usually leads to more maintainable and understandable programs, regardless of their size or complexity.
-
-## Author
-
-This project has been created by:
-
-Yelnar Moldabekov
-
-Contacts:
-
-- Email: [mranle91@gmail.com](mailto:mranle91@gmail.com)
-- [GitHub](https://github.com/ymoldabe/)

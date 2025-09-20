@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 
+	"wheres-my-pizza/internal/app"
 	"wheres-my-pizza/internal/config"
 	"wheres-my-pizza/pkg/logger"
 )

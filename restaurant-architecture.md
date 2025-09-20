@@ -3,12 +3,14 @@
 ## 1. System Architecture Overview
 
 ### High-Level Architecture Principles
+
 - **Single Responsibility**: Each service has one clear purpose
 - **Event-Driven Architecture**: Services communicate via message queues
 - **Database Per Service**: Each service owns its data operations
 - **Graceful Degradation**: System continues operating even if some components fail
 
 ### Component Interaction Flow
+
 ```
 HTTP Client → Order Service → Database + RabbitMQ
                 ↓
@@ -68,14 +70,16 @@ restaurant-system/
 ## 3. Core Components Architecture
 
 ### 3.1 Configuration Management
+
 - **Pattern**: Centralized configuration with environment overrides
-- **Implementation**: 
+- **Implementation**:
   - YAML file parsing with `gopkg.in/yaml.v3`
   - Environment variable overrides for sensitive data
   - Validation of required fields at startup
   - Connection string builders for DB and RabbitMQ
 
 ### 3.2 Database Layer
+
 - **Pattern**: Repository pattern with transaction management
 - **Key Components**:
   - Connection pool management with retry logic
@@ -84,6 +88,7 @@ restaurant-system/
   - Query builders for complex operations (order number generation)
 
 ### 3.3 Messaging Layer
+
 - **Pattern**: Publisher/Subscriber with connection recovery
 - **Exchange Strategy**:
   - `orders_topic` (Topic Exchange) - for routing orders to specialized workers
@@ -94,6 +99,7 @@ restaurant-system/
   - `notifications_queue` - for subscribers
 
 ### 3.4 Logging System
+
 - **Pattern**: Structured logging with correlation IDs
 - **Implementation**:
   - JSON formatter with required fields
@@ -104,13 +110,16 @@ restaurant-system/
 ## 4. Step-by-Step Implementation Guide
 
 ### Phase 1: Foundation (Days 1-2)
+
 1. **Project Setup**
+
    - Initialize Go module
    - Set up project structure
    - Create basic configuration system
    - Implement structured logging
 
 2. **Database Foundation**
+
    - Create migration system
    - Implement connection management
    - Set up transaction utilities
@@ -122,8 +131,10 @@ restaurant-system/
    - Build publisher and consumer abstractions
    - Test messaging connectivity
 
-### Phase 2: Core Models & Validation (Day 3)
-1. **Data Models**
+### Phase 2: Core models & Validation (Day 3)
+
+1. **Data models**
+
    - Define order, worker, and message structs
    - Implement JSON serialization tags
    - Create validation functions
@@ -136,13 +147,16 @@ restaurant-system/
    - Error handling strategies
 
 ### Phase 3: Order Service (Days 4-5)
+
 1. **HTTP Server Setup**
+
    - Implement HTTP router (use standard library)
    - Create middleware for logging and request IDs
    - Set up graceful shutdown
    - Add health check endpoint
 
 2. **Order Processing Pipeline**
+
    - HTTP request validation
    - Database transaction handling
    - Message publishing
@@ -154,13 +168,16 @@ restaurant-system/
    - Message publishing verification
 
 ### Phase 4: Kitchen Worker Service (Days 6-7)
+
 1. **Worker Registration System**
+
    - Database registration with duplicate checking
    - Worker specialization logic
    - Heartbeat mechanism
    - Graceful shutdown handling
 
 2. **Message Processing Pipeline**
+
    - Queue consumption setup
    - Order type filtering
    - Status update transactions
@@ -174,7 +191,9 @@ restaurant-system/
    - Idempotency checks
 
 ### Phase 5: Tracking Service (Day 8)
+
 1. **Read-Only API Implementation**
+
    - HTTP handlers for order status
    - Order history retrieval
    - Worker status monitoring
@@ -186,6 +205,7 @@ restaurant-system/
    - Error handling for missing orders
 
 ### Phase 6: Notification Service (Day 9)
+
 1. **Subscriber Implementation**
    - Fanout queue consumption
    - Message parsing and display
@@ -193,7 +213,9 @@ restaurant-system/
    - Graceful shutdown
 
 ### Phase 7: Integration & Testing (Day 10)
+
 1. **End-to-End Testing**
+
    - Full workflow testing
    - Multiple worker scenarios
    - Error condition testing
@@ -208,27 +230,32 @@ restaurant-system/
 ## 5. Key Implementation Strategies
 
 ### 5.1 Connection Management
+
 - **Database**: Use `pgxpool` for connection pooling
 - **RabbitMQ**: Implement connection recovery with exponential backoff
 - **Health Checks**: Regular connectivity testing
 
 ### 5.2 Error Handling Strategy
+
 - **Validation Errors**: Return structured error responses
 - **Database Errors**: Log and return generic 500 responses
 - **Message Errors**: Use nack with requeue for recoverable errors
 - **Dead Letter Queues**: For permanently failed messages
 
 ### 5.3 Concurrency Patterns
+
 - **Order Service**: Use semaphore to limit concurrent requests
 - **Kitchen Workers**: Prefetch count for load balancing
 - **Tracking Service**: Read-only queries with connection pooling
 
 ### 5.4 Data Consistency
+
 - **Order Creation**: Single transaction for order + items + status log
 - **Status Updates**: Transactional updates with message publishing
 - **Worker Registration**: Use database constraints for uniqueness
 
 ### 5.5 Message Design Patterns
+
 - **Work Queue**: Kitchen workers compete for orders
 - **Fanout**: All notification subscribers receive updates
 - **Topic Routing**: Orders routed by type and priority
@@ -237,24 +264,28 @@ restaurant-system/
 ## 6. Advanced Considerations
 
 ### 6.1 Scalability Patterns
+
 - Multiple instances of each service
 - Queue partitioning for high throughput
 - Database read replicas for tracking service
 - Load balancing strategies
 
 ### 6.2 Monitoring & Observability
+
 - Structured logging with correlation IDs
 - Metrics collection (order processing times, queue depths)
 - Health check endpoints
 - Error rate monitoring
 
 ### 6.3 Security Considerations
+
 - Input validation and sanitization
 - SQL injection prevention
 - Message authentication
 - Connection security (TLS)
 
 ### 6.4 Testing Strategy
+
 - Unit tests for business logic
 - Integration tests for database operations
 - Message flow testing
@@ -263,18 +294,21 @@ restaurant-system/
 ## 7. Implementation Tips
 
 ### 7.1 Code Organization
+
 - Keep business logic separate from HTTP/messaging layers
 - Use interfaces for testability
 - Implement proper error wrapping
 - Follow Go naming conventions
 
 ### 7.2 Performance Optimization
+
 - Use prepared statements for repeated queries
 - Implement connection pooling properly
 - Batch operations where possible
 - Monitor and optimize slow queries
 
 ### 7.3 Operational Excellence
+
 - Implement proper logging levels
 - Use configuration for all environment-specific values
 - Handle graceful shutdowns
