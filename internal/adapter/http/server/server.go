@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"time"
 
-	"wheres-my-pizza/internal/config"
 	"wheres-my-pizza/internal/adapter/http/handler"
+	"wheres-my-pizza/internal/config"
 	"wheres-my-pizza/internal/domain/types"
 	"wheres-my-pizza/pkg/logger"
 )
